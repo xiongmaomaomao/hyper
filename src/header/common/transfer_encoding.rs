@@ -1,7 +1,7 @@
 use header::{Header, HeaderFormat};
 use std::fmt;
 use std::from_str::FromStr;
-use super::{from_comma_delimited, fmt_comma_delimited};
+use super::util::{from_comma_delimited, fmt_comma_delimited};
 
 /// The `Transfer-Encoding` header.
 ///
