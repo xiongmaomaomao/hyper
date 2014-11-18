@@ -279,6 +279,8 @@ impl<'a> HeaderView<'a> {
         get_or_parse::<H>(self.1).map(|item| downcast(item.read()))
     }
 
+    /// Get just the header value as a String.
+    #[inline]
     pub fn value_string(&self) -> String {
         (*self.1.read()).to_string()
     }
