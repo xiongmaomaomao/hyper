@@ -7,7 +7,6 @@ use std::str;
 use url::Url;
 
 use method;
-use status;
 use uri;
 use version::{HttpVersion, Http09, Http10, Http11, Http20};
 use {HttpResult, HttpMethodError, HttpVersionError, HttpIoError, HttpUriError};
@@ -541,7 +540,11 @@ pub fn read_request_line<R: Reader>(stream: &mut R) -> HttpResult<RequestLine> {
 /// `status-line = HTTP-version SP status-code SP reason-phrase CRLF`
 ///
 /// However, reason-phrase is absolutely useless, so its tossed.
-pub type StatusLine = (HttpVersion, status::StatusCode);
+pub type StatusLine = (HttpVersion, RawStatus);
+
+/// The raw status code and reason-phrase.
+#[deriving(PartialEq, Show, Clone)]
+pub struct RawStatus(pub u16, pub String);
 
 /// Read the StatusLine, such as `HTTP/1.1 200 OK`.
 ///
@@ -566,7 +569,7 @@ pub fn read_status_line<R: Reader>(stream: &mut R) -> HttpResult<StatusLine> {
 }
 
 /// Read the StatusCode from a stream.
-pub fn read_status<R: Reader>(stream: &mut R) -> HttpResult<status::StatusCode> {
+pub fn read_status<R: Reader>(stream: &mut R) -> HttpResult<RawStatus> {
     let code = [
         try_io!(stream.read_byte()),
         try_io!(stream.read_byte()),
@@ -574,25 +577,27 @@ pub fn read_status<R: Reader>(stream: &mut R) -> HttpResult<status::StatusCode> 
     ];
 
     let code = match str::from_utf8(code.as_slice()).and_then(from_str::<u16>) {
-        Some(num) => match FromPrimitive::from_u16(num) {
-            Some(code) => code,
-            None => return Err(HttpStatusError)
-        },
+        Some(num) => num,
         None => return Err(HttpStatusError)
     };
 
-    // reason is purely for humans, so just consume it till we get to CRLF
+    match try_io!(stream.read_byte()) {
+        b' ' => (),
+        _ => return Err(HttpStatusError)
+    }
+
+    let mut reason = String::new();
     loop {
         match try_io!(stream.read_byte()) {
             CR => match try_io!(stream.read_byte()) {
                 LF => break,
                 _ => return Err(HttpStatusError)
             },
-            _ => ()
+            b => reason.push(b as char)
         }
     }
 
-    Ok(code)
+    Ok(RawStatus(code, reason))
 }
 
 #[inline]
@@ -613,9 +618,11 @@ mod tests {
     use status;
     use version::{HttpVersion, Http10, Http11, Http20};
     use {HttpResult, HttpVersionError};
+    use HttpResult;
     use url::Url;
 
-    use super::{read_method, read_uri, read_http_version, read_header, RawHeaderLine, read_status};
+    use super::{read_method, read_uri, read_http_version, read_header,
+                RawHeaderLine, read_status, RawStatus};
 
     fn mem(s: &str) -> MemReader {
         MemReader::new(s.as_bytes().to_vec())
@@ -667,11 +674,11 @@ mod tests {
 
     #[test]
     fn test_read_status() {
-        fn read(s: &str, result: HttpResult<status::StatusCode>) {
+        fn read(s: &str, result: HttpResult<RawStatus>) {
             assert_eq!(read_status(&mut mem(s)), result);
         }
 
-        read("200 OK\r\n", Ok(status::Ok));
+        read("200 OK\r\n", Ok(RawStatus(200, "OK".to_string())));
     }
 
     #[test]
