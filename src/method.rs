@@ -1,3 +1,4 @@
+#![unstable]
 //! The HTTP request method
 use std::fmt;
 use std::str::FromStr;
@@ -14,6 +15,7 @@ use self::Method::{Options, Get, Post, Put, Delete, Head, Trace, Connect, Patch,
 /// It may make sense to grow this to include all variants currently
 /// registered with IANA, if they are at all common to use.
 #[deriving(Clone, PartialEq, Eq, Hash)]
+#[experimental = "list of enums might change drastically"]
 pub enum Method {
     /// OPTIONS
     Options,
@@ -43,6 +45,7 @@ impl Method {
     ///
     /// See [the spec](https://tools.ietf.org/html/rfc7231#section-4.2.1)
     /// for more words.
+    #[unstable]
     pub fn safe(&self) -> bool {
         match *self {
             Get | Head | Options | Trace => true,
@@ -55,6 +58,7 @@ impl Method {
     ///
     /// See [the spec](https://tools.ietf.org/html/rfc7231#section-4.2.2) for
     /// more words.
+    #[unstable]
     pub fn idempotent(&self) -> bool {
         if self.safe() {
             true

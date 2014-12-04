@@ -1,3 +1,4 @@
+#![unstable]
 //! HTTP Versions enum
 //!
 //! Instead of relying on typo-prone Strings, use expected HTTP versions as
@@ -8,14 +9,19 @@ use self::HttpVersion::{Http09, Http10, Http11, Http20};
 
 /// Represents a version of the HTTP spec.
 #[deriving(PartialEq, PartialOrd)]
+#[unstable]
 pub enum HttpVersion {
     /// `HTTP/0.9`
+    #[unstable]
     Http09,
     /// `HTTP/1.0`
+    #[unstable]
     Http10,
     /// `HTTP/1.1`
+    #[unstable]
     Http11,
     /// `HTTP/2.0`
+    #[unstable]
     Http20
 }
 
